@@ -1,0 +1,2 @@
+# Mincer-project
+Mincer code
