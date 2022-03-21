@@ -1,0 +1,229 @@
+rm(list=ls())
+library(ggplot2) 
+library(here)
+library(corrplot)
+library(readr)
+library(tidyverse)
+library(gdata)
+library(stargazer)
+library(dplyr)
+library(psych)
+
+#-----------------------------------------------------------------Matrix setup
+setwd("E:/base") 
+DB <- read_csv("DBH.csv") #file available in the Github RePo
+
+FinalDataset <- select( DB, c('ent','eda','anios_esc','ing_x_hrs','Sexo',
+                              'Exp_laboral') )
+
+colnames(FinalDataset) <- c('Entidad','Edad','Escolaridad','Ingreso por Hora',
+                            'Sexo', 'Experiencia Laboral')
+
+
+#----------------------------------------Age delimitation to 15 to 75 years old
+
+FinalDataset <- FinalDataset %>%
+  mutate(`Ingreso por Hora` = case_when(`Ingreso por Hora` > 1 ~ `Ingreso por Hora`,
+                                        `Ingreso por Hora` <= 1 ~ NA_real_),
+         `Experiencia Laboral` = case_when(`Experiencia Laboral` > 0 ~ `Experiencia Laboral`,
+                                           `Experiencia Laboral` <= 0 ~ NA_real_),
+         `Edad` = case_when(`Edad` > 14 ~ `Edad`,
+                            `Edad` <= 14 ~ NA_real_),
+         `Edad` = case_when(`Edad` < 76 ~ `Edad`,
+                            `Edad` >= 76 ~ NA_real_))
+
+
+#-----------------------------------Data normalization and Correlation plotting
+
+
+CleanData <- scale(FinalDataset)
+
+CleanDataCor<- cor(na.omit(CleanData))
+corrplot(CleanDataCor,addCoef.col =  'black',number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+  #Pearson's correlation coefficients were calculated by default 
+
+pairs.panels(CleanDataCor)  #Density distribution and correlation matrix
+
+stargazer(as.data.frame(FinalDataset), type = "text", digits = 2) #summary
+
+
+
+#-------------------------------------------------------------Linear regressions 
+
+ProductivityRegression <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                             + `Experiencia Laboral`
+                             + I(`Experiencia Laboral`^2),
+                             data = FinalDataset)
+
+summary(ProductivityRegression)
+
+DiscriminationRegression <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                               + `Experiencia Laboral`
+                               + I(`Experiencia Laboral`^2) + Sexo,
+                               data = FinalDataset)
+
+summary(DiscriminationRegression)
+
+#----------------------------------------Linear regression by geographical zone
+
+
+#To subset the database an ID column was attached, 5 different subset where
+#created, 'Clasificadores' data frame containing the 'id' tag and region code.
+
+FinalDataset <- FinalDataset %>% mutate(id = row_number())
+Clasificadores <- read_csv("Clasificación de entidades.csv")
+Clasificadores <- Clasificadores %>% mutate(id = row_number())
+
+
+
+#Merging data frames
+DFclasificadores <- merge(FinalDataset, Clasificadores, by ='id')
+
+stargazer(as.data.frame(DFclasificadores), type = "text", digits = 2)
+
+#Sub-setting 'DFclasificadores' by region code
+Region1 <- subset(DFclasificadores, Entidad_region == 1)
+Region2 <- subset(DFclasificadores, Entidad_region == 2)
+Region3 <- subset(DFclasificadores, Entidad_region == 3)
+Region4 <- subset(DFclasificadores, Entidad_region == 4)
+Region5 <- subset(DFclasificadores, Entidad_region == 5)
+
+
+
+# Running the Mincer model by region
+
+MincerReg1 <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                 + `Experiencia Laboral`
+                 + I(`Experiencia Laboral`^2) + Sexo,
+                 data = Region1)
+MincerReg2 <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                 + `Experiencia Laboral`
+                 + I(`Experiencia Laboral`^2) + Sexo,
+                 data = Region2)
+MincerReg3 <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                 + `Experiencia Laboral`
+                 + I(`Experiencia Laboral`^2) + Sexo,
+                 data = Region3)
+MincerReg4 <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                 + `Experiencia Laboral`
+                 + I(`Experiencia Laboral`^2) + Sexo,
+                 data = Region4)
+MincerReg5 <- lm(log(`Ingreso por Hora`) ~  `Escolaridad` 
+                 + `Experiencia Laboral`
+                 + I(`Experiencia Laboral`^2) + Sexo,
+                 data = Region5)
+
+summary(DiscriminationRegression) # summary reviewing
+summary(MincerReg1)
+summary(MincerReg2)
+summary(MincerReg3)
+summary(MincerReg4)
+summary(MincerReg5)
+
+#Plotting regions
+
+  #Region 1
+Region1CR <- cor(na.omit(Region1))
+corrplot(Region1CR[2:6 ,2:6],
+         addCoef.col = 'black',
+         number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+
+pairs.panels(Region1CR)
+
+  #Region 2
+Region2CR <- cor(na.omit(Region2))
+corrplot(Region2CR[2:6 ,2:6],
+         addCoef.col = 'black',
+         number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+
+pairs.panels(Region2CR)
+
+Region3CR <- cor(na.omit(Region3))
+corrplot(Region3CR[2:6 ,2:6],
+         addCoef.col = 'black',
+         number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+
+pairs.panels(Region3CR)
+
+Region4CR <- cor(na.omit(Region4))
+corrplot(Region4CR[2:6 ,2:6],
+         addCoef.col = 'black',
+         number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+
+pairs.panels(Region4CR)
+
+
+Region5CR <- cor(na.omit(Region5))
+corrplot(Region5CR[2:6 ,2:6],
+         addCoef.col = 'black',
+         number.cex = 0.8,
+         number.digits = 2,
+         diag = FALSE,
+         bg = 'grey',
+         addgrid.col = 'white',
+         mar = c(1,1,1,1))
+
+pairs.panels(Region5CR)
+
+#-----------------------------------------------Extracting data to a csv file
+
+General <- tidy(DiscriminationRegression)
+Reg1 <- tidy(MincerReg1)
+Reg2 <- tidy(MincerReg2)
+Reg3 <- tidy(MincerReg3)
+Reg4 <- tidy(MincerReg4)
+Reg5 <- tidy(MincerReg5)
+General
+Reg1 
+Reg2 
+Reg3 
+Reg4 
+Reg5 
+
+write.csv(General, "General.csv")
+write.csv(Reg1, "Reg1.csv")
+write.csv(Reg2, "Reg2.csv")
+write.csv(Reg3, "Reg3.csv")
+write.csv(Reg4, "Reg4.csv")
+write.csv(Reg5, "Reg5.csv")
+
+                                                      #Code by Joe Vazquez,PhD
+
+
+
+
+#R version 4.1.3 (2022-03-10) -- "One Push-Up"
+#Copyright (C) 2022 The R Foundation for Statistical Computing
+#Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+
+
+
+
+
+
