@@ -153,6 +153,8 @@ corrplot(Region2CR[2:6 ,2:6],
 
 pairs.panels(Region2CR)
 
+
+  #Region 3
 Region3CR <- cor(na.omit(Region3))
 corrplot(Region3CR[2:6 ,2:6],
          addCoef.col = 'black',
@@ -165,6 +167,7 @@ corrplot(Region3CR[2:6 ,2:6],
 
 pairs.panels(Region3CR)
 
+  #Region 4
 Region4CR <- cor(na.omit(Region4))
 corrplot(Region4CR[2:6 ,2:6],
          addCoef.col = 'black',
@@ -177,7 +180,7 @@ corrplot(Region4CR[2:6 ,2:6],
 
 pairs.panels(Region4CR)
 
-
+   #Region 5
 Region5CR <- cor(na.omit(Region5))
 corrplot(Region5CR[2:6 ,2:6],
          addCoef.col = 'black',
